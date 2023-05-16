@@ -1,13 +1,21 @@
-; start package.el with emacs
-(require 'package)
-; initialize package.el
-(package-initialize)
+;;{{{ Set up package and use-package
 
 (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
 (require 'package)
-(dolist (source '(("melpa" . "https://melpa.org/packages/")
-                  ("elpa" . "http://tromey.com/elpa/")))
-  (add-to-list 'package-archives source t))
+(add-to-list 'package-archives
+             '("melpa" . "https://melpa.org/packages/") t)
+(package-initialize)
+
+;; Bootstrap 'use-package'
+(eval-after-load 'gnutls
+  '(add-to-list 'gnutls-trustfiles "/etc/ssl/cert.pem"))
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+(eval-when-compile
+  (require 'use-package))
+(require 'bind-key)
+(setq use-package-always-ensure t)
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
@@ -21,7 +29,7 @@
  '(help-at-pt-timer-delay 0.9)
  '(line-number-mode nil)
  '(package-selected-packages
-	 '(exec-path-from-shell toml-mode rust-playground rustic flycheck-pyflakes auto-complete-c-headers yasnippet-snippets flymake ac-c-headers google-c-style cmake-mode rainbow-delimiters flycheck use-package haskell-mode elpy)))
+	 '(smartparens web-mode flx-ido flex-autopair js2-mode magit wsd-mode exec-path-from-shell toml-mode rust-playground rustic flycheck-pyflakes auto-complete-c-headers yasnippet-snippets flymake ac-c-headers google-c-style cmake-mode rainbow-delimiters flycheck use-package haskell-mode elpy)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -31,13 +39,17 @@
  '(rainbow-delimiters-depth-2-face ((t (:foreground "#dda000" :height 1.5))))
  '(rainbow-delimiters-depth-3-face ((t (:foreground "#f7fd10" :height 1.4))))
  '(rainbow-delimiters-depth-4-face ((t (:foreground "green" :height 1.3))))
- '(rainbow-delimiters-depth-5-face ((t (:foreground "blue" :height 1.2))))
+ '(rainbow-delimiters-depth-5-face ((t (:foreground "brightblue" :height 1.2))))
  '(rainbow-delimiters-depth-6-face ((t (:foreground "violet" :height 1.1))))
  '(rainbow-delimiters-depth-7-face ((t (:foreground "purple" :height 1.0))))
  '(rainbow-delimiters-depth-8-face ((t (:foreground "grey" :height 0.9))))
  '(rainbow-delimiters-unmatched-face ((t (:background "cyan" :height 0.8)))))
 
 (require 'use-package)
+
+;;; no tab
+(setq-default indent-tabs-mode nil)
+(setq-default tab-width 4 indent-tabs-mode t)
 
 ;; rainbow brackets
 (require 'rainbow-delimiters)
@@ -57,6 +69,7 @@
 ;; Python Stuff
 ;; elpy
 ;; Fixing a key binding bug in elpy
+(require 'elpy)
 (elpy-enable)
 (define-key yas-minor-mode-map (kbd "C-c k") 'yas-expand)
 (define-key global-map (kbd "C-c o") 'iedit-mode)
@@ -78,7 +91,7 @@
 ;; C/C++ stuff
 ; einrückungen 2 spaces:
 (setq-default c-basic-offset 2 c-default-style "linux")
-(setq-default tab-width 2 indent-tabs-mode t)
+;(setq-default tab-width 2 indent-tabs-mode t)
 
 (defun set-newline-and-indent ()
   (local-set-key (kbd "RET") 'newline-and-indent))
@@ -216,3 +229,62 @@
            ;; uncomment if lldb-mi is not in PATH
            ;; :lldbmipath "path/to/lldb-mi"
      ))))
+
+;;; magit
+(add-to-list 'load-path "~/.emacs.d/site-lisp/magit/lisp")
+(require 'magit)
+(with-eval-after-load 'info
+	(info-initialize)
+	(add-to-list 'Info-directory-list "~/.emacs.d/site-lisp/magit/Documentation/")
+	)
+(global-set-key (kbd "C-c m s") 'magit-status)
+(global-set-key (kbd "C-c m l") 'magit-log)
+
+
+;; web javascript
+;(add-hook 'js-mode-hook #'smartparens-mode)
+
+;; javascript
+(require 'js2-mode)
+(add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
+
+(setq js2-mode-hook
+  '(lambda () (progn
+    (set-variable 'indent-tabs-mode nil))))
+
+(setq html-mode-hook
+  '(lambda () (progn
+    (set-variable 'indent-tabs-mode nil))))
+
+;; Better imenu
+(add-hook 'js2-mode-hook #'js2-imenu-extras-mode)
+
+;;js2-mode steals TAB, let's steal it back for yasnippet
+(defun js2-tab-properly ()
+  (interactive)
+  (let ((yas/fallback-behavior 'return-nil))
+    (unless (yas/expand)
+      (indent-for-tab-command)
+      (if (looking-back "^\s*")
+          (back-to-indentation)))))
+(eval-after-load 'js2-mode
+  '(define-key js2-mode-map (kbd "TAB") 'js2-tab-properly))
+
+(set-cursor-color "#aaaaaa")
+
+;flex-pair
+;(require 'flex-autopair)
+;(flex-autopair-mode 1)
+
+;;; flx-ido
+(require 'flx-ido)
+(ido-mode 1)
+(ido-everywhere 1)
+(flx-ido-mode 1)
+;; disable ido faces to see flx highlights.
+(setq ido-enable-flex-matching t)
+(setq ido-use-faces nil)
+
+(require 'web-mode)
+(add-hook 'web-mode-hook 'autopair-mode)
+(add-to-list 'auto-mode-alist '("\\.php$" . web-mode))
