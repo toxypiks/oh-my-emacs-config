@@ -1,11 +1,12 @@
-;;test
-
-;;{{{ Set up package and use-package
-
 (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
 (require 'package)
-(add-to-list 'package-archives
-             '("melpa" . "https://melpa.org/packages/") t)
+(dolist (source '(("melpa" . "https://melpa.org/packages/")
+                  ("elpa" . "http://tromey.com/elpa/")))
+  (add-to-list 'package-archives source t))
+
+; start package.el with emacs
+(require 'package)
+; initialize package.el
 (package-initialize)
 
 ;; Bootstrap 'use-package'
