@@ -1,24 +1,13 @@
-(setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
-(require 'package)
-(dolist (source '(("melpa" . "https://melpa.org/packages/")
-                  ("elpa" . "http://tromey.com/elpa/")))
-  (add-to-list 'package-archives source t))
-
 ; start package.el with emacs
 (require 'package)
 ; initialize package.el
 (package-initialize)
 
-;; Bootstrap 'use-package'
-(eval-after-load 'gnutls
-  '(add-to-list 'gnutls-trustfiles "/etc/ssl/cert.pem"))
-(unless (package-installed-p 'use-package)
-  (package-refresh-contents)
-  (package-install 'use-package))
-(eval-when-compile
-  (require 'use-package))
-(require 'bind-key)
-(setq use-package-always-ensure t)
+(setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
+(require 'package)
+(dolist (source '(("melpa" . "https://melpa.org/packages/")
+                  ("elpa" . "http://tromey.com/elpa/")))
+  (add-to-list 'package-archives source t))
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
@@ -26,13 +15,13 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(ansi-color-faces-vector
-	 [default default default italic underline success warning error])
+   [default default default italic underline success warning error])
  '(custom-enabled-themes '(wombat))
  '(help-at-pt-display-when-idle '(flymake-overlay) nil (help-at-pt))
  '(help-at-pt-timer-delay 0.9)
  '(line-number-mode nil)
  '(package-selected-packages
-	 '(smartparens web-mode flx-ido flex-autopair js2-mode magit wsd-mode exec-path-from-shell toml-mode rust-playground rustic flycheck-pyflakes auto-complete-c-headers yasnippet-snippets flymake ac-c-headers google-c-style cmake-mode rainbow-delimiters flycheck use-package haskell-mode elpy)))
+   '(pyvenv lsp-ui lsp-mode smartparens web-mode flx-ido flex-autopair js2-mode magit wsd-mode exec-path-from-shell toml-mode rust-playground rustic flycheck-pyflakes auto-complete-c-headers yasnippet-snippets flymake ac-c-headers google-c-style cmake-mode rainbow-delimiters flycheck use-package haskell-mode elpy)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -70,12 +59,55 @@
 
 
 ;; Python Stuff
-;; elpy
-;; Fixing a key binding bug in elpy
-(require 'elpy)
-(elpy-enable)
-(define-key yas-minor-mode-map (kbd "C-c k") 'yas-expand)
-(define-key global-map (kbd "C-c o") 'iedit-mode)
+
+;;; python stuff
+;; Use flycheck-pyflakes for python. Seems to work a little better.
+(use-package lsp-mode
+  :config
+  (setq lsp-idle-delay 0.5
+        lsp-enable-symbol-highlighting t
+        lsp-enable-snippet nil  ;; Not supported by company capf, which is the recommended company backend
+        lsp-pyls-plugins-flake8-enabled t)
+  (lsp-register-custom-settings
+   '(("pyls.plugins.pyls_mypy.enabled" t t)
+     ("pyls.plugins.pyls_mypy.live_mode" nil t)
+     ("pyls.plugins.pyls_black.enabled" t t)
+     ("pyls.plugins.pyls_isort.enabled" t t)
+
+     ;; Disable these as they're duplicated by flake8
+     ("pyls.plugins.pycodestyle.enabled" nil t)
+     ("pyls.plugins.mccabe.enabled" nil t)
+     ("pyls.plugins.pyflakes.enabled" nil t)))
+  :hook
+  ((python-mode . lsp)
+	 (lsp-mode . lsp-enable-which-key-integration))
+  ;(evil-normal-state-map)
+  )
+
+(use-package lsp-ui
+ :config (setq lsp-ui-sideline-show-hover t
+                lsp-ui-sideline-delay 0.5
+                lsp-ui-doc-delay 5
+                lsp-ui-sideline-ignore-duplicates t
+								lsp-ui-doc-delay 0.2
+                lsp-ui-doc-position 'bottom
+                lsp-ui-doc-alignment 'frame
+                lsp-ui-doc-header nil
+                lsp-ui-doc-include-signature t
+                lsp-ui-doc-use-childframe t)
+  :commands lsp-ui-mode
+)
+
+(use-package pyvenv
+  :ensure t
+  :defer t
+  :diminish
+  :config
+	(setenv "WORKON_HOME" "/home/laura/warteapparat_working/warteapparat")
+	;(pyvenv-tracking-mode 1))  ; Automatically use pyvenv-workon via dir-locals (not used yet)
+	; Show python venv name in modeline2
+	(setq pyvenv-mode-line-indicator '(pyvenv-virtual-env-name ("[venv:" pyvenv-virtual-env-name "] ")))
+	(pyvenv-mode t))
 
 ;;; flycheck-pyflakes
 ;(require 'flycheck-pyflakes)
@@ -102,10 +134,10 @@
 (add-hook 'c++-mode-hook 'set-newline-and-indent)
 
 ;; start auto-complete with emacs
-(require 'auto-complete)
+;(require 'auto-complete)
 ; do default config for auto-complete
-(require 'auto-complete-config)
-(ac-config-default)
+;(require 'auto-complete-config)
+;(ac-config-default)
 
 ;;; start yasnippet with emacs
 (require 'yasnippet)
