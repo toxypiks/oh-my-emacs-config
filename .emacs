@@ -21,7 +21,7 @@
  '(help-at-pt-timer-delay 0.9)
  '(line-number-mode nil)
  '(package-selected-packages
-   '(pyvenv lsp-ui lsp-mode smartparens web-mode flx-ido flex-autopair js2-mode magit wsd-mode exec-path-from-shell toml-mode rust-playground rustic flycheck-pyflakes auto-complete-c-headers yasnippet-snippets flymake ac-c-headers google-c-style cmake-mode rainbow-delimiters flycheck use-package haskell-mode elpy)))
+   '(company-box pyvenv lsp-ui lsp-mode smartparens web-mode flx-ido flex-autopair js2-mode magit wsd-mode exec-path-from-shell toml-mode rust-playground rustic flycheck-pyflakes auto-complete-c-headers yasnippet-snippets flymake ac-c-headers google-c-style cmake-mode rainbow-delimiters flycheck use-package haskell-mode elpy)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -89,7 +89,7 @@
                 lsp-ui-sideline-delay 0.5
                 lsp-ui-doc-delay 5
                 lsp-ui-sideline-ignore-duplicates t
-								lsp-ui-doc-delay 0.2
+				lsp-ui-doc-delay 0.2
                 lsp-ui-doc-position 'bottom
                 lsp-ui-doc-alignment 'frame
                 lsp-ui-doc-header nil
@@ -108,6 +108,64 @@
 	; Show python venv name in modeline2
 	(setq pyvenv-mode-line-indicator '(pyvenv-virtual-env-name ("[venv:" pyvenv-virtual-env-name "] ")))
 	(pyvenv-mode t))
+
+
+(use-package company
+	:after lsp-mode
+	:hook (lsp-mode . company-mode)
+  :ensure
+  :bind
+  (:map company-active-map
+              ("C-n". company-select-next)
+              ("C-p". company-select-previous)
+              ("M-<". company-select-first)
+              ("M->". company-select-last))
+  (:map lsp-mode-map
+         ("<tab>" . company-indent-or-complete-common))
+  ;(:map company-mode-map
+  ;      ("<tab>". tab-indent-or-complete)
+  ;      ("TAB". tab-indent-or-complete))
+  
+  :custom
+  (company-minimum-prefix-length 1)
+  (company-idle-delay 0.0))
+
+; company box - icon support für nicht shell mode
+;(use-package company-box
+;  :hook (company-mode . company-box-mode))
+
+(defun company-yasnippet-or-completion ()
+  (interactive)
+  (or (do-yas-expand)
+      (company-complete-common)))
+
+(defun check-expansion ()
+  (save-excursion
+    (if (looking-at "\\_>") t
+      (backward-char 1)
+      (if (looking-at "\\.") t
+        (backward-char 1)
+        (if (looking-at "::") t nil)))))
+
+(defun do-yas-expand ()
+  (let ((yas/fallback-behavior 'return-nil))
+    (yas/expand)))
+
+(defun tab-indent-or-complete ()
+  (interactive)
+  (if (minibufferp)
+      (minibuffer-complete)
+    (if (or (not yas/minor-mode)
+            (null (do-yas-expand)))
+        (if (check-expansion)
+            (company-complete-common)
+          (indent-for-tab-command)))))
+
+;;; start yasnippet with emacs
+(require 'yasnippet)
+;; (yas-global-mode 1)
+(yas-reload-all)
+(add-hook 'prog-mode-hook #'yas-minor-mode)
 
 ;;; flycheck-pyflakes
 ;(require 'flycheck-pyflakes)
@@ -138,12 +196,6 @@
 ; do default config for auto-complete
 ;(require 'auto-complete-config)
 ;(ac-config-default)
-
-;;; start yasnippet with emacs
-(require 'yasnippet)
-;; (yas-global-mode 1)
-(yas-reload-all)
-(add-hook 'prog-mode-hook #'yas-minor-mode)
 
 ; let's define a function which initializes auto-complete-c-headers and gets called for c/c++ hooks
 (defun my:ac-c-header-init ()
