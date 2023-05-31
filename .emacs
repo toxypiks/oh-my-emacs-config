@@ -1,13 +1,25 @@
-; start package.el with emacs
-(require 'package)
-; initialize package.el
-(package-initialize)
-
 (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
 (require 'package)
 (dolist (source '(("melpa" . "https://melpa.org/packages/")
                   ("elpa" . "http://tromey.com/elpa/")))
   (add-to-list 'package-archives source t))
+
+; start package.el with emacs
+(require 'package)
+; initialize package.el
+(package-initialize)
+
+;; Bootstrap 'use-package'
+(eval-after-load 'gnutls
+  '(add-to-list 'gnutls-trustfiles "/etc/ssl/cert.pem"))
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+(eval-when-compile
+  (require 'use-package))
+(require 'bind-key)
+(setq use-package-always-ensure t)
+
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
