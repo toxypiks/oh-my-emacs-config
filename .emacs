@@ -9,18 +9,6 @@
 ; initialize package.el
 (package-initialize)
 
-;; Bootstrap 'use-package'
-(eval-after-load 'gnutls
-  '(add-to-list 'gnutls-trustfiles "/etc/ssl/cert.pem"))
-(unless (package-installed-p 'use-package)
-  (package-refresh-contents)
-  (package-install 'use-package))
-(eval-when-compile
-  (require 'use-package))
-(require 'bind-key)
-(setq use-package-always-ensure t)
-
-
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -71,8 +59,6 @@
 
 
 ;; Python Stuff
-
-;;; python stuff
 ;; Use flycheck-pyflakes for python. Seems to work a little better.
 (use-package lsp-mode
   :config
