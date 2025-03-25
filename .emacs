@@ -1,377 +1,349 @@
-; start package.el with emacs
-(require 'package)
-; initialize package.el
+(setq custom-file "~/.emacs.custom.el")
+(load-file custom-file)
+
 (package-initialize)
 
-(setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
-(require 'package)
-(dolist (source '(("melpa" . "https://melpa.org/packages/")
-                  ("elpa" . "http://tromey.com/elpa/")))
-  (add-to-list 'package-archives source t))
+(add-to-list 'load-path "~/.emacs.local/")
 
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(ansi-color-faces-vector
-   [default default default italic underline success warning error])
- '(custom-enabled-themes '(wombat))
- '(help-at-pt-display-when-idle '(flymake-overlay) nil (help-at-pt))
- '(help-at-pt-timer-delay 0.9)
- '(line-number-mode nil)
- '(package-selected-packages
-   '(company-box pyvenv lsp-ui lsp-mode smartparens web-mode flx-ido flex-autopair js2-mode magit wsd-mode exec-path-from-shell toml-mode rust-playground rustic flycheck-pyflakes auto-complete-c-headers yasnippet-snippets flymake ac-c-headers google-c-style cmake-mode rainbow-delimiters flycheck use-package haskell-mode elpy)))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(rainbow-delimiters-depth-1-face ((t (:foreground "#ff0000" :height 1.6))))
- '(rainbow-delimiters-depth-2-face ((t (:foreground "#dda000" :height 1.5))))
- '(rainbow-delimiters-depth-3-face ((t (:foreground "#f7fd10" :height 1.4))))
- '(rainbow-delimiters-depth-4-face ((t (:foreground "green" :height 1.3))))
- '(rainbow-delimiters-depth-5-face ((t (:foreground "brightblue" :height 1.2))))
- '(rainbow-delimiters-depth-6-face ((t (:foreground "violet" :height 1.1))))
- '(rainbow-delimiters-depth-7-face ((t (:foreground "purple" :height 1.0))))
- '(rainbow-delimiters-depth-8-face ((t (:foreground "grey" :height 0.9))))
- '(rainbow-delimiters-unmatched-face ((t (:background "cyan" :height 0.8)))))
+(load "~/.emacs.rc/rc.el")
+(load "~/.emacs.rc/misc-rc.el")
+(load "~/.emacs.rc/org-mode-rc.el")
+(load "~/.emacs.rc/autocommit-rc.el")
 
-(require 'use-package)
+;;; Appearance
+(defun rc/get-default-font ()
+  (cond
+   ((eq system-type 'windows-nt) "Consolas-13")
+   ((eq system-type 'gnu/linux) "Iosevka-20")))
 
-;;; no tab
-(setq-default indent-tabs-mode nil)
-(setq-default tab-width 4 indent-tabs-mode t)
+(add-to-list 'default-frame-alist `(font . ,(rc/get-default-font)))
 
-;; rainbow brackets
-(require 'rainbow-delimiters)
-(add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
-
-;; rainbow-delimiters-mode setup, with decreasing bracket size
-
+(tool-bar-mode 0)
+(menu-bar-mode 0)
+(scroll-bar-mode 0)
+(column-number-mode 1)
+(show-paren-mode 1)
 ;; auto close bracket insertion. New in emacs 24
 (electric-pair-mode 1)
 
-;;; programming part
-;;; shortkeys:
-(global-set-key (kbd "C-c c")        'comment-region)
-(global-set-key (kbd "C-c C")    'uncomment-region)
+;; rainbow brackets
+(rc/require 'rainbow-delimiters)
+(add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
 
+(rc/require-theme 'gruber-darker)
+;; (rc/require-theme 'zenburn)
+;; (load-theme 'adwaita t)
 
-;; Python Stuff
+(eval-after-load 'zenburn
+  (set-face-attribute 'line-number nil :inherit 'default))
 
-;;; python stuff
-;; Use flycheck-pyflakes for python. Seems to work a little better.
-(use-package lsp-mode
-  :config
-  (setq lsp-idle-delay 0.5
-        lsp-enable-symbol-highlighting t
-        lsp-enable-snippet nil  ;; Not supported by company capf, which is the recommended company backend
-        lsp-pyls-plugins-flake8-enabled t)
-  (lsp-register-custom-settings
-   '(("pyls.plugins.pyls_mypy.enabled" t t)
-     ("pyls.plugins.pyls_mypy.live_mode" nil t)
-     ("pyls.plugins.pyls_black.enabled" t t)
-     ("pyls.plugins.pyls_isort.enabled" t t)
+;;; ido
+(rc/require 'smex 'ido-completing-read+)
 
-     ;; Disable these as they're duplicated by flake8
-     ("pyls.plugins.pycodestyle.enabled" nil t)
-     ("pyls.plugins.mccabe.enabled" nil t)
-     ("pyls.plugins.pyflakes.enabled" nil t)))
-  :hook
-  ((python-mode . lsp)
-	 (lsp-mode . lsp-enable-which-key-integration))
-  ;(evil-normal-state-map)
-  )
+(require 'ido-completing-read+)
 
-(use-package lsp-ui
- :config (setq lsp-ui-sideline-show-hover t
-                lsp-ui-sideline-delay 0.5
-                lsp-ui-doc-delay 5
-                lsp-ui-sideline-ignore-duplicates t
-				lsp-ui-doc-delay 0.2
-                lsp-ui-doc-position 'bottom
-                lsp-ui-doc-alignment 'frame
-                lsp-ui-doc-header nil
-                lsp-ui-doc-include-signature t
-                lsp-ui-doc-use-childframe t)
-  :commands lsp-ui-mode
-)
+(ido-mode 1)
+(ido-everywhere 1)
+(ido-ubiquitous-mode 1)
 
-(use-package pyvenv
-  :ensure t
-  :defer t
-  :diminish
-  :config
-	(setenv "WORKON_HOME" "/home/laura/warteapparat_working/warteapparat")
-	;(pyvenv-tracking-mode 1))  ; Automatically use pyvenv-workon via dir-locals (not used yet)
-	; Show python venv name in modeline2
-	(setq pyvenv-mode-line-indicator '(pyvenv-virtual-env-name ("[venv:" pyvenv-virtual-env-name "] ")))
-	(pyvenv-mode t))
+(global-set-key (kbd "M-x") 'smex)
+(global-set-key (kbd "C-c C-c M-x") 'execute-extended-command)
 
+;;; c-mode
+(setq-default c-basic-offset 4
+              c-default-style '((java-mode . "java")
+                                (awk-mode . "awk")
+                                (other . "bsd")))
 
-(use-package company
-	:after lsp-mode
-	:hook (lsp-mode . company-mode)
-  :ensure
-  :bind
-  (:map company-active-map
-              ("C-n". company-select-next)
-              ("C-p". company-select-previous)
-              ("M-<". company-select-first)
-              ("M->". company-select-last))
-  (:map lsp-mode-map
-         ("<tab>" . company-indent-or-complete-common))
-  ;(:map company-mode-map
-  ;      ("<tab>". tab-indent-or-complete)
-  ;      ("TAB". tab-indent-or-complete))
-  
-  :custom
-  (company-minimum-prefix-length 1)
-  (company-idle-delay 0.0))
+(add-hook 'c-mode-hook (lambda ()
+                         (interactive)
+                         (c-toggle-comment-style -1)))
 
-; company box - icon support für nicht shell mode
-;(use-package company-box
-;  :hook (company-mode . company-box-mode))
+;;; Paredit
+(rc/require 'paredit)
 
-(defun company-yasnippet-or-completion ()
+(defun rc/turn-on-paredit ()
   (interactive)
-  (or (do-yas-expand)
-      (company-complete-common)))
+  (paredit-mode 1))
 
-(defun check-expansion ()
-  (save-excursion
-    (if (looking-at "\\_>") t
-      (backward-char 1)
-      (if (looking-at "\\.") t
-        (backward-char 1)
-        (if (looking-at "::") t nil)))))
+(add-hook 'emacs-lisp-mode-hook  'rc/turn-on-paredit)
+(add-hook 'clojure-mode-hook     'rc/turn-on-paredit)
+(add-hook 'lisp-mode-hook        'rc/turn-on-paredit)
+(add-hook 'common-lisp-mode-hook 'rc/turn-on-paredit)
+(add-hook 'scheme-mode-hook      'rc/turn-on-paredit)
+(add-hook 'racket-mode-hook      'rc/turn-on-paredit)
 
-(defun do-yas-expand ()
-  (let ((yas/fallback-behavior 'return-nil))
-    (yas/expand)))
+;;; Emacs lisp
+(add-hook 'emacs-lisp-mode-hook
+          '(lambda ()
+             (local-set-key (kbd "C-c C-j")
+                            (quote eval-print-last-sexp))))
+(add-to-list 'auto-mode-alist '("Cask" . emacs-lisp-mode))
 
-(defun tab-indent-or-complete ()
+;;; uxntal-mode
+
+(rc/require 'uxntal-mode)
+
+;;; Haskell mode
+(rc/require 'haskell-mode)
+
+(setq haskell-process-type 'cabal-new-repl)
+(setq haskell-process-log t)
+
+(add-hook 'haskell-mode-hook 'haskell-indent-mode)
+(add-hook 'haskell-mode-hook 'interactive-haskell-mode)
+(add-hook 'haskell-mode-hook 'haskell-doc-mode)
+
+(require 'basm-mode)
+
+(require 'fasm-mode)
+(add-to-list 'auto-mode-alist '("\\.asm\\'" . fasm-mode))
+
+(require 'porth-mode)
+
+(require 'noq-mode)
+
+(require 'jai-mode)
+
+(require 'simpc-mode)
+(add-to-list 'auto-mode-alist '("\\.[hc]\\(pp\\)?\\'" . simpc-mode))
+
+(require 'c3-mode)
+
+;;; Whitespace mode
+(defun rc/set-up-whitespace-handling ()
   (interactive)
-  (if (minibufferp)
-      (minibuffer-complete)
-    (if (or (not yas/minor-mode)
-            (null (do-yas-expand)))
-        (if (check-expansion)
-            (company-complete-common)
-          (indent-for-tab-command)))))
+  (whitespace-mode 1)
+  (add-to-list 'write-file-functions 'delete-trailing-whitespace))
 
-;;; start yasnippet with emacs
-(require 'yasnippet)
-;; (yas-global-mode 1)
-(yas-reload-all)
-(add-hook 'prog-mode-hook #'yas-minor-mode)
+(add-hook 'tuareg-mode-hook 'rc/set-up-whitespace-handling)
+(add-hook 'c++-mode-hook 'rc/set-up-whitespace-handling)
+(add-hook 'c-mode-hook 'rc/set-up-whitespace-handling)
+(add-hook 'simpc-mode-hook 'rc/set-up-whitespace-handling)
+(add-hook 'emacs-lisp-mode 'rc/set-up-whitespace-handling)
+(add-hook 'java-mode-hook 'rc/set-up-whitespace-handling)
+(add-hook 'lua-mode-hook 'rc/set-up-whitespace-handling)
+(add-hook 'rust-mode-hook 'rc/set-up-whitespace-handling)
+(add-hook 'scala-mode-hook 'rc/set-up-whitespace-handling)
+(add-hook 'markdown-mode-hook 'rc/set-up-whitespace-handling)
+(add-hook 'haskell-mode-hook 'rc/set-up-whitespace-handling)
+(add-hook 'python-mode-hook 'rc/set-up-whitespace-handling)
+(add-hook 'erlang-mode-hook 'rc/set-up-whitespace-handling)
+(add-hook 'asm-mode-hook 'rc/set-up-whitespace-handling)
+(add-hook 'fasm-mode-hook 'rc/set-up-whitespace-handling)
+(add-hook 'go-mode-hook 'rc/set-up-whitespace-handling)
+(add-hook 'nim-mode-hook 'rc/set-up-whitespace-handling)
+(add-hook 'yaml-mode-hook 'rc/set-up-whitespace-handling)
+(add-hook 'porth-mode-hook 'rc/set-up-whitespace-handling)
 
-;;; flycheck-pyflakes
-;(require 'flycheck-pyflakes)
-;(add-hook 'python-mode-hook 'flycheck-mode)
-
-;; haskell stuff
-(require 'haskell-mode)
-(use-package haskell-mode
-	     :ensure t
-	     :config
-	     (add-hook 'haskell-mode-hook
-		       (lambda ()
-			 (interactive-haskell-mode)
-			 (flycheck-mode))))
-
-;; C/C++ stuff
-; einrückungen 2 spaces:
-(setq-default c-basic-offset 2 c-default-style "linux")
-;(setq-default tab-width 2 indent-tabs-mode t)
-
-(defun set-newline-and-indent ()
-  (local-set-key (kbd "RET") 'newline-and-indent))
-(add-hook 'c-mode-hook 'set-newline-and-indent)
-(add-hook 'c++-mode-hook 'set-newline-and-indent)
-
-;; start auto-complete with emacs
-;(require 'auto-complete)
-; do default config for auto-complete
-;(require 'auto-complete-config)
-;(ac-config-default)
-
-; let's define a function which initializes auto-complete-c-headers and gets called for c/c++ hooks
-(defun my:ac-c-header-init ()
-  (require 'auto-complete-c-headers)
-  (add-to-list 'ac-sources 'ac-source-c-headers)
- ; (add-to-list 'achead:include-directories '"/home/major/c_zeuch/cpp11/lambdatest")
-  (setq achead:include-directories
-							 (append '("/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0"
-                "/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/x86_64-pc-linux-gnu"
-                "/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/backward"
-                "/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include"
-                "/usr/local/include"
-                "/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include-fixed"
-                "/usr/include")
-	     achead:include-directories))
-)
-; now let's call this function from c/c++ hooks
-(add-hook 'c++-mode-hook 'my:ac-c-header-init)
-(add-hook 'c-mode-hook 'my:ac-c-header-init)
-
-;start iedit
-(require 'iedit) 
-
-;start google-c-style with emacs
-(require 'google-c-style)
-(add-hook 'c-mode-common-hook 'google-set-c-style)
-(add-hook 'c-mode-common-hook 'google-make-newline-indent)
-
-; CEDET stuff
-; turn on Semantic 
-(semantic-mode 1)
-; let's define a function which adds semantic as a suggestion backend to auto complete
-; and hook this function to c-mode-common-hook 
-; ;connect semantic to autocpmplete
-(defun my:add-semantic-to-autocomplete() 
-  (add-to-list 'ac-sources 'ac-source-semantic)
-)
-(add-hook 'c-mode-common-hook 'my:add-semantic-to-autocomplete)
-; needs to save results of its parsing
-
-;turn on ede mode
-(global-ede-mode 1)
-
-(global-display-line-numbers-mode)
-
-;; Rust stuff
-(with-eval-after-load 'rust-mode
-  ; remove rust-mode from the list of file extension mappings
-  (setq auto-mode-alist (rassq-delete-all 'rust-mode auto-mode-alist))
-  )
-(add-hook 'rust-mode-hook
-          (lambda () (error "Don't use rust-mode, use rustic")
-						))
-
-(use-package rustic
-	:ensure
-	:bind (:map rustic-mode-map
-              ("M-j" . lsp-ui-imenu)
-              ("M-?" . lsp-find-references)
-              ("C-c C-c l" . flycheck-list-errors)
-              ("C-c C-c a" . lsp-execute-code-action)
-              ("C-c C-c r" . lsp-rename)
-              ("C-c C-c q" . lsp-workspace-restart)
-              ("C-c C-c Q" . lsp-workspace-shutdown)
-              ("C-c C-c s" . lsp-rust-analyzer-status)
-              ("C-c C-c e" . lsp-rust-analyzer-expand-macro)
-              ("C-c C-c d" . dap-hydra)
-              ("C-c C-c h" . lsp-ui-doc-glance))
-  :config
-  ;; uncomment for less flashiness
-  ;; (setq lsp-eldoc-hook nil)
-  ;; (setq lsp-enable-symbol-highlighting nil)
-  ;; (setq lsp-signature-auto-activate nil)
-
-  ;; comment to disable rustfmt on save
-  (setq rustic-format-on-save t)
-  (add-hook 'rustic-mode-hook 'rk/rustic-mode-hook))
-(defun rk/rustic-mode-hook ()
-  ;; so that run C-c C-c C-r works without having to confirm, but don't try to
-  ;; save rust buffers that are not file visiting. Once
-  ;; https://github.com/brotzeit/rustic/issues/253 has been resolved this should
-  ;; no longer be necessary.
-  (when buffer-file-name
-    (setq-local buffer-save-without-query t)))
-;; for rust-analyzer integration
-
-
-;; Create / cleanup rust scratch projects quickly
-;;(use-package rust-playground :ensure)
-
-
-;; for Cargo.toml and other config files
-(use-package toml-mode :ensure)
-
-;; setting up debugging support with dap-mode
-
-(use-package exec-path-from-shell
-  :ensure
-  :init (exec-path-from-shell-initialize))
-
-(when (executable-find "lldb-mi")
-  (use-package dap-mode
-    :ensure
-    :config
-    (dap-ui-mode)
-    (dap-ui-controls-mode 1)
-
-    (require 'dap-lldb)
-    (require 'dap-gdb-lldb)
-    ;; installs .extension/vscode
-    (dap-gdb-lldb-setup)
-    (dap-register-debug-template
-     "Rust::LLDB Run Configuration"
-     (list :type "lldb"
-           :request "launch"
-           :name "LLDB::Run"
-	   :gdbpath "rust-lldb"
-           ;; uncomment if lldb-mi is not in PATH
-           ;; :lldbmipath "path/to/lldb-mi"
-     ))))
+;;; display-line-numbers-mode
+(when (version<= "26.0.50" emacs-version)
+  (global-display-line-numbers-mode))
 
 ;;; magit
-(add-to-list 'load-path "~/.emacs.d/site-lisp/magit/lisp")
-(require 'magit)
-(with-eval-after-load 'info
-	(info-initialize)
-	(add-to-list 'Info-directory-list "~/.emacs.d/site-lisp/magit/Documentation/")
-	)
+;; magit requres this lib, but it is not installed automatically on
+;; Windows.
+(rc/require 'cl-lib)
+(rc/require 'magit)
+
+(setq magit-auto-revert-mode nil)
+
 (global-set-key (kbd "C-c m s") 'magit-status)
 (global-set-key (kbd "C-c m l") 'magit-log)
 
+;start iedit (ok)
+(use-package iedit :ensure)
+(require 'iedit)
+(define-key global-map (kbd "C-c o") 'iedit-mode)
 
-;; web javascript
-;(add-hook 'js-mode-hook #'smartparens-mode)
+;; bring up help for key bindings
+(use-package which-key
+:ensure
+:config
+(which-key-mode))
 
-;; javascript
-(require 'js2-mode)
-(add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
 
-(setq js2-mode-hook
-  '(lambda () (progn
-    (set-variable 'indent-tabs-mode nil))))
+;;; multiple cursors
+(rc/require 'multiple-cursors)
 
-(setq html-mode-hook
-  '(lambda () (progn
-    (set-variable 'indent-tabs-mode nil))))
+;(global-set-key (kbd "C-S-c C-S-c") 'mc/edit-lines)
+(global-set-key (kbd "C-c c") 'mc/edit-lines)
+(global-set-key (kbd "C->")         'mc/mark-next-like-this)
+(global-set-key (kbd "C-<")         'mc/mark-previous-like-this)
+(global-set-key (kbd "C-c C-<")     'mc/mark-all-like-this)
+(global-set-key (kbd "C-\"")        'mc/skip-to-next-like-this)
+(global-set-key (kbd "C-:")         'mc/skip-to-previous-like-this)
 
-;; Better imenu
-(add-hook 'js2-mode-hook #'js2-imenu-extras-mode)
+(global-set-key (kbd "C-n")
+    (lambda () (interactive) (forward-line  5)))
+(global-set-key (kbd "C-p")
+    (lambda () (interactive) (forward-line -5)))
 
-;;js2-mode steals TAB, let's steal it back for yasnippet
-(defun js2-tab-properly ()
+;;; dired
+(require 'dired-x)
+(setq dired-omit-files
+      (concat dired-omit-files "\\|^\\..+$"))
+(setq-default dired-dwim-target t)
+(setq dired-listing-switches "-alh")
+(setq dired-mouse-drag-files t)
+
+;;; helm
+(rc/require 'helm 'helm-git-grep 'helm-ls-git)
+
+(setq helm-ff-transformer-show-only-basename nil)
+
+(global-set-key (kbd "C-c h t") 'helm-cmd-t)
+(global-set-key (kbd "C-c h g g") 'helm-git-grep)
+(global-set-key (kbd "C-c h g l") 'helm-ls-git-ls)
+(global-set-key (kbd "C-c h f") 'helm-find)
+(global-set-key (kbd "C-c h a") 'helm-org-agenda-files-headings)
+(global-set-key (kbd "C-c h r") 'helm-recentf)
+
+;;; yasnippet
+(rc/require 'yasnippet)
+
+(require 'yasnippet)
+
+(setq yas/triggers-in-field nil)
+(setq yas-snippet-dirs '("~/.emacs.snippets/"))
+
+(yas-global-mode 1)
+
+;;; word-wrap
+(defun rc/enable-word-wrap ()
   (interactive)
-  (let ((yas/fallback-behavior 'return-nil))
-    (unless (yas/expand)
-      (indent-for-tab-command)
-      (if (looking-back "^\s*")
-          (back-to-indentation)))))
-(eval-after-load 'js2-mode
-  '(define-key js2-mode-map (kbd "TAB") 'js2-tab-properly))
+  (toggle-word-wrap 1))
 
-(set-cursor-color "#aaaaaa")
+(add-hook 'markdown-mode-hook 'rc/enable-word-wrap)
 
-;flex-pair
-;(require 'flex-autopair)
-;(flex-autopair-mode 1)
+;;; nxml
+(add-to-list 'auto-mode-alist '("\\.html\\'" . nxml-mode))
+(add-to-list 'auto-mode-alist '("\\.xsd\\'" . nxml-mode))
+(add-to-list 'auto-mode-alist '("\\.ant\\'" . nxml-mode))
 
-;;; flx-ido
-(require 'flx-ido)
-(ido-mode 1)
-(ido-everywhere 1)
-(flx-ido-mode 1)
-;; disable ido faces to see flx highlights.
-(setq ido-enable-flex-matching t)
-(setq ido-use-faces nil)
+;;; tramp
+;;; http://stackoverflow.com/questions/13794433/how-to-disable-autosave-for-tramp-buffers-in-emacs
+(setq tramp-auto-save-directory "/tmp")
 
-(require 'web-mode)
-(add-hook 'web-mode-hook 'autopair-mode)
-(add-to-list 'auto-mode-alist '("\\.php$" . web-mode))
+;;; powershell
+(rc/require 'powershell)
+(add-to-list 'auto-mode-alist '("\\.ps1\\'" . powershell-mode))
+(add-to-list 'auto-mode-alist '("\\.psm1\\'" . powershell-mode))
+
+;;; eldoc mode
+(defun rc/turn-on-eldoc-mode ()
+  (interactive)
+  (eldoc-mode 1))
+
+(add-hook 'emacs-lisp-mode-hook 'rc/turn-on-eldoc-mode)
+
+;;; Company
+(rc/require 'company)
+(require 'company)
+
+(global-company-mode)
+
+(add-hook 'tuareg-mode-hook
+          (lambda ()
+            (interactive)
+            (company-mode 0)))
+
+;;; Typescript
+(rc/require 'typescript-mode)
+(add-to-list 'auto-mode-alist '("\\.mts\\'" . typescript-mode))
+
+;;; Tide
+(rc/require 'tide)
+
+(defun rc/turn-on-tide-and-flycheck ()  ;Flycheck is a dependency of tide
+  (interactive)
+  (tide-setup)
+  (flycheck-mode 1))
+
+(add-hook 'typescript-mode-hook 'rc/turn-on-tide-and-flycheck)
+
+;;; Proof general
+(rc/require 'proof-general)
+(add-hook 'coq-mode-hook
+          '(lambda ()
+             (local-set-key (kbd "C-c C-q C-n")
+                            (quote proof-assert-until-point-interactive))))
+
+;;; LaTeX mode
+(add-hook 'tex-mode-hook
+          (lambda ()
+            (interactive)
+            (add-to-list 'tex-verbatim-environments "code")))
+
+(setq font-latex-fontify-sectioning 'color)
+
+;;; Move Text
+(rc/require 'move-text)
+(global-set-key (kbd "M-p") 'move-text-up)
+(global-set-key (kbd "M-n") 'move-text-down)
+
+;;; Ebisp
+(add-to-list 'auto-mode-alist '("\\.ebi\\'" . lisp-mode))
+
+;;; Packages that don't require configuration
+(rc/require
+ 'scala-mode
+ 'd-mode
+ 'yaml-mode
+ 'glsl-mode
+ 'tuareg
+ 'lua-mode
+ 'less-css-mode
+ 'graphviz-dot-mode
+ 'clojure-mode
+ 'cmake-mode
+ 'rust-mode
+ 'csharp-mode
+ 'nim-mode
+ 'jinja2-mode
+ 'markdown-mode
+ 'purescript-mode
+ 'nix-mode
+ 'dockerfile-mode
+ 'toml-mode
+ 'nginx-mode
+ 'kotlin-mode
+ 'go-mode
+ 'php-mode
+ 'racket-mode
+ 'qml-mode
+ 'ag
+ 'elpy
+ 'typescript-mode
+ 'rfc-mode
+ 'sml-mode
+ )
+
+(load "~/.emacs.shadow/shadow-rc.el" t)
+
+(defun astyle-buffer (&optional justify)
+  (interactive)
+  (let ((saved-line-number (line-number-at-pos)))
+    (shell-command-on-region
+     (point-min)
+     (point-max)
+     "astyle --style=kr"
+     nil
+     t)
+    (goto-line saved-line-number)))
+
+(add-hook 'simpc-mode-hook
+          (lambda ()
+            (interactive)
+            (setq-local fill-paragraph-function 'astyle-buffer)))
+
+(require 'compile)
+
+;; pascalik.pas(24,44) Error: Can't evaluate constant expression
+
+compilation-error-regexp-alist-alist
+
+(add-to-list 'compilation-error-regexp-alist
+             '("\\([a-zA-Z0-9\\.]+\\)(\\([0-9]+\\)\\(,\\([0-9]+\\)\\)?) \\(Warning:\\)?"
+               1 2 (4) (5)))
+
